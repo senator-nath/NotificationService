@@ -8,6 +8,6 @@ namespace NotificationService.Application.Contract.IEmailContract
 {
     public interface IEmailService
     {
-        void SendEmail(EmailRequest request);
+        Task SendEmailAsync(EmailRequest request);
     }
 }

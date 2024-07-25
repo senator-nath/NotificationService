@@ -8,24 +8,49 @@ using System.Linq;
 using System.Net.Mail;
 using System.Text;
 using System.Threading.Tasks;
+using MailKit.Security;
+using NotificationService.Domain.Enums;
+using System.Net.Http;
+using System.Net.Http.Json;
 
 namespace NotificationService.Application.Contract.EmailService
 {
     public class EmailService : IEmailService
     {
         private readonly mailSettings _mailSettings;
-
-        public EmailService(mailSettings mailSettings)
+        private readonly IMongoDbLogRepository _mongodb;
+        private readonly HttpClient _httpClient;
+        public EmailService(mailSettings mailSettings, IMongoDbLogRepository mongodb, HttpClient httpClient)
         {
             _mailSettings = mailSettings ?? throw new ArgumentNullException(nameof(mailSettings));
+            _mongodb = mongodb;
+            _httpClient = httpClient;
         }
-        public void SendEmail(EmailRequest request)
+        public async Task SendEmailAsync(EmailRequest request)
         {
             var emailMessage = CreateEmailMessage(request);
             Send(emailMessage);
+
+
+            var notificationActivity = new NotificationActivity()
+            {
+                SentTo = request.To,
+                SentAt = DateTime.Now,
+                Status = true,
+                Purpose = request.Subject,
+                NotificationType = NotificationType.Email,
+                HasAttachment = true,
+
+            };
+            await _mongodb.CreateLog(notificationActivity);
+            var registrationRequest = new RegistrationRequest()
+            {
+                Email = request.To,
+                // Map other properties as needed
+            };
+            var response = await _httpClient.PostAsJsonAsync("https://registration-service.com/api/register", registrationRequest);
+            response.EnsureSuccessStatusCode();
         }
-
-
 
         private MimeMessage CreateEmailMessage(EmailRequest request)
         {
@@ -46,5 +71,9 @@ namespace NotificationService.Application.Contract.EmailService
             smtp.Send(mailMessage);
             smtp.Disconnect(true);
         }
+
+
     }
+
+
 }
