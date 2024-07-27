@@ -19,12 +19,12 @@ namespace NotificationService.Application.Contract.EmailService
     {
         private readonly mailSettings _mailSettings;
         private readonly IMongoDbLogRepository _mongodb;
-        private readonly HttpClient _httpClient;
-        public EmailService(mailSettings mailSettings, IMongoDbLogRepository mongodb, HttpClient httpClient)
+
+        public EmailService(mailSettings mailSettings, IMongoDbLogRepository mongodb)
         {
             _mailSettings = mailSettings ?? throw new ArgumentNullException(nameof(mailSettings));
             _mongodb = mongodb;
-            _httpClient = httpClient;
+
         }
         public async Task SendEmailAsync(EmailRequest request)
         {
@@ -43,13 +43,7 @@ namespace NotificationService.Application.Contract.EmailService
 
             };
             await _mongodb.CreateLog(notificationActivity);
-            var registrationRequest = new RegistrationRequest()
-            {
-                Email = request.To,
-                // Map other properties as needed
-            };
-            var response = await _httpClient.PostAsJsonAsync("https://registration-service.com/api/register", registrationRequest);
-            response.EnsureSuccessStatusCode();
+
         }
 
         private MimeMessage CreateEmailMessage(EmailRequest request)
